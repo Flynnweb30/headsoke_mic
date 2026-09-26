@@ -3,7 +3,6 @@ export class Meter {
     const o = opts || {};
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
-    this.label = o.label || '';
     this.color = o.color || '#4cc9f0';
     this.peak = -100; this.rms = -100; this.clipUntil = 0;
     this._resize();
@@ -30,33 +29,35 @@ export class Meter {
   _tick() {
     const c = this.ctx; const w = this.w; const h = this.h;
     c.clearRect(0, 0, w, h);
-    c.fillStyle = '#0b1220'; c.fillRect(0, 0, w, h);
+    const bg = c.createLinearGradient(0, 0, 0, h);
+    bg.addColorStop(0, '#0b1220'); bg.addColorStop(1, '#0a0f1c');
+    c.fillStyle = bg; c.fillRect(0, 0, w, h);
     const dbMin = -60; const dbMax = 0;
-    const yForDb = (db) => {
+    const tForDb = (db) => {
       let t = (db - dbMin) / (dbMax - dbMin);
-      if (t < 0) t = 0; if (t > 1) t = 1;
-      return h - t * h;
+      if (t < 0) t = 0; if (t > 1) t = 1; return t;
     };
-    c.strokeStyle = 'rgba(255,255,255,0.06)'; c.lineWidth = 1;
+    c.strokeStyle = 'rgba(120, 180, 255, 0.08)'; c.lineWidth = 1;
     const lines = [-60, -48, -36, -24, -12, -6, -3];
     for (let i = 0; i < lines.length; i++) {
-      const y = yForDb(lines[i]);
+      const y = h - tForDb(lines[i]) * h;
       c.beginPath(); c.moveTo(0, y); c.lineTo(w, y); c.stroke();
     }
     if (this.rms > -100) {
-      const y = yForDb(this.rms);
+      const t = tForDb(this.rms);
+      const barH = t * h;
       const g = c.createLinearGradient(0, h, 0, 0);
-      g.addColorStop(0, this.color); g.addColorStop(1, '#a2d2ff');
-      c.fillStyle = g; c.fillRect(0, y, w, h - y);
+      g.addColorStop(0, this.color); g.addColorStop(0.7, '#7ad7ff'); g.addColorStop(1, '#a2d2ff');
+      c.fillStyle = g; c.fillRect(0, h - barH, w, barH);
     }
     if (this.peak > -100) {
-      const y = yForDb(this.peak);
+      const y = h - tForDb(this.peak) * h;
       c.fillStyle = this.peak >= -0.1 ? '#ff5d5d' : '#e0fbff';
       c.fillRect(0, Math.max(0, y - 2), w, 2);
     }
     if (performance.now() < this.clipUntil) {
-      c.fillStyle = 'rgba(255, 60, 60, 0.9)';
-      c.fillRect(0, 0, 6, h);
+      c.fillStyle = 'rgba(255, 80, 80, 0.85)';
+      c.fillRect(0, 0, 4, h);
     }
     requestAnimationFrame(this._tick);
   }

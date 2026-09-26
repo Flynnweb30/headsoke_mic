@@ -1,39 +1,55 @@
 # Headsoke
 
-Real-time singing microphone processor - runs entirely in the browser using the Web Audio API and AudioWorklet.
+Real-time singing microphone processor that runs entirely in the browser using the Web Audio API and AudioWorklet.
 
-## Features
-
-- Real USB headset microphone capture via `getUserMedia()`
-- Live DSP: input/output gain, HPF, 5-band EQ, noise gate, compressor, de-esser, presence, delay, reverb, limiter, dry/wet
-- Real-time input/output level meters + clip detection
-- 6 presets (Flat, Clean, Singing, Studio, Warm, Clear)
-- Bypass, reset, device hot-swap handling
-- AudioWorklet-based DSP for low latency
-
-## Browser limitations
-
-- **Virtual microphone is not possible from a web page.** To route into Zoom/OBS/Discord, install a virtual audio cable (VB-CABLE on Windows, BlackHole on macOS) and route the OS output to it.
-- **Output device selection (`setSinkId`)** works in Chromium only (Chrome, Edge, Opera).
-- **Microphone requires HTTPS** (or `http://localhost`). Render provides HTTPS automatically.
-
-## Local development
+## Quick start
 
     npm install
     npm run dev
+    # open http://127.0.0.1:5173
 
-## Build
+## Production build
 
     npm run build
     npm run preview
+    npm run validate
+
+## Workflow
+
+1. Select microphone
+2. Select output (Chromium only)
+3. Click **Start audio** and allow the permission prompt
+4. Choose a preset (Clean, Singing, Studio, Warm, Clear)
+5. Fine-tune with sliders in the four DSP clusters
+6. Watch input / output meters and the CLIP badge
+7. Listen on headphones
+
+## Real functionality
+
+Every control writes to a real Web Audio node parameter:
+input gain, high-pass, 5-band EQ, AudioWorklet noise gate, AudioWorklet de-esser, DynamicsCompressorNode, presence peaking filter, DelayNode, ConvolverNode reverb, DynamicsCompressorNode limiter, dry/wet mixers, and gain stage routing.
+
+Presets overwrite the full DSP parameter map. Bypass genuinely reroutes the signal. Reset closes the audio context and returns everything to defaults.
+
+## Browser limitations (honest)
+
+- **No virtual microphone.** A normal web page cannot register itself as a system input for Discord, Zoom, Teams, OBS, or games. Use VB-CABLE (Windows) or BlackHole (macOS) and route the OS output to it.
+- **`setSinkId` (output selection)** works in Chromium only. Firefox and Safari disable the dropdown with a clear note.
+- **HTTPS or localhost required** for `getUserMedia` and `AudioWorklet`.
+- **Mobile Safari** suspends mic capture when the screen locks.
+- **Background tabs** on mobile may suspend the audio context.
 
 ## Deploy on Render
 
-1. Push this repo to GitHub.
-2. On Render: New + -> Static Site -> connect the repo.
-3. Build Command: `npm ci && npm run build`
-4. Publish Directory: `dist`
-5. (Optional) Use Blueprint with the included `render.yaml`.
+Static Site:
+
+- Build Command: `npm ci && npm run build`
+- Publish Directory: `dist`
+- Rewrite: `/*` -> `/index.html` (Rewrite)
+- Headers: `/*` `Cross-Origin-Opener-Policy: same-origin`
+- Headers: `/*` `Cross-Origin-Embedder-Policy: require-corp`
+
+Or use the included `render.yaml` as a Blueprint.
 
 ## License
 

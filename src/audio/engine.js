@@ -8,7 +8,7 @@ export class AudioEngine {
     this.nodes = null; this._bypassTap = null;
     this.listeners = {
       meterIn: new Set(), meterOut: new Set(), clip: new Set(),
-      state: new Set(), error: new Set()
+      state: new Set(), error: new Set(), activity: new Set()
     };
   }
   on(event, cb) { this.listeners[event].add(cb); return () => this.listeners[event].delete(cb); }
@@ -51,10 +51,18 @@ export class AudioEngine {
   async _loadWorklets() {
     if (this.workletsLoaded) return;
     const ctx = await this._ensureContext();
-    const base = new URL('./worklets/', import.meta.url);
-    await ctx.audioWorklet.addModule(new URL('meter-processor.js', base));
-    await ctx.audioWorklet.addModule(new URL('gate-processor.js', base));
-    await ctx.audioWorklet.addModule(new URL('deesser-processor.js', base));
+    const paths = [
+      '/worklets/meter-processor.js',
+      '/worklets/gate-processor.js',
+      '/worklets/deesser-processor.js'
+    ];
+    for (const p of paths) {
+      try {
+        await ctx.audioWorklet.addModule(p);
+      } catch (err) {
+        throw new Error('Failed to load AudioWorklet module: ' + p + ' (' + err.message + ')');
+      }
+    }
     this.workletsLoaded = true;
   }
 
@@ -157,9 +165,13 @@ export class AudioEngine {
   }
 
   _wireMeters() {
-    this.nodes.meterInNode.port.onmessage = (e) => this._emit('meterIn', e.data);
+    this.nodes.meterInNode.port.onmessage = (e) => {
+      this._emit('meterIn', e.data);
+      this._emit('activity', { stage: 'input', level: e.data.rms });
+    };
     this.nodes.meterOutNode.port.onmessage = (e) => {
       this._emit('meterOut', e.data);
+      this._emit('activity', { stage: 'output', level: e.data.rms });
       if (e.data.clip) this._emit('clip', { at: performance.now() });
     };
   }
@@ -300,7 +312,6 @@ export class AudioEngine {
       if (this.monitorEl && typeof this.monitorEl.setSinkId === 'function') {
         await this.monitorEl.setSinkId(deviceId || '');
       }
-      this.nodes.outputGain.disconnect(this.ctx.destination);
       return true;
     } catch (err) {
       this._emitError('Unable to switch output device: ' + err.message);

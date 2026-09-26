@@ -4,11 +4,15 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="color-scheme" content="dark" />
-  <title>Headsoke - Real-time Singing Mic Processor</title>
+  <meta name="description" content="Headsoke - browser-only real-time singing microphone processor." />
+  <title>Headsoke - Browser Singing Mic Processor</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 </head>
 <body>
   <div id="app"></div>
+  <noscript><div style="padding:2rem;font-family:sans-serif;color:#fff;background:#0a0f1c">
+    Headsoke requires JavaScript to run the real-time audio pipeline.
+  </div></noscript>
   <script type="module" src="/src/main.js"></script>
 </body>
 </html>
